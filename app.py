@@ -1,3 +1,5 @@
+"""AI Project Health Reporting System — Streamlit Dashboard."""
+
 from __future__ import annotations
 
 import base64
@@ -12,19 +14,12 @@ from typing import Any
 import streamlit as st
 import streamlit.components.v1 as components
 
-try:
-    if "GEMINI_API_KEY" in st.secrets:
-        os.environ.setdefault("GEMINI_API_KEY", st.secrets["GEMINI_API_KEY"])
-except Exception:
-    pass  # no secrets.toml locally — fine, .env / os.environ will be used instead
-
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(levelname)-8s %(name)s — %(message)s"
-)
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s %(levelname)-8s %(name)s — %(message)s")
 logger = logging.getLogger(__name__)
 
 st.set_page_config(
-    page_title="RAGPulse : AI Project Health Reporting System",
+    page_title="AI Project Health Reporting",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -32,7 +27,6 @@ st.set_page_config(
 
 try:
     from dotenv import load_dotenv
-
     load_dotenv()
 except ImportError:
     pass
@@ -40,54 +34,45 @@ except ImportError:
 OUTPUT_DIR = Path("outputs")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
-RAG_HEX = {
-    "Green": "#2ecc71",
-    "Amber": "#f39c12",
-    "Red": "#e74c3c",
-    "Unknown": "#95a5a6",
-}
-RAG_BG = {
-    "Green": "#d5f5e3",
-    "Amber": "#fef9e7",
-    "Red": "#fdedec",
-    "Unknown": "#f2f3f4",
-}
+RAG_HEX = {"Green": "#2ecc71", "Amber": "#f39c12", "Red": "#e74c3c", "Unknown": "#95a5a6"}
+RAG_BG  = {"Green": "#d5f5e3", "Amber": "#fef9e7", "Red": "#fdedec",  "Unknown": "#f2f3f4"}
 
 
+# ─────────────────────────────────────────────────────────────────────────────
 # Utility helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
 def _check_gemini() -> bool:
-    return bool(
-        os.environ.get("GEMINI_API_KEY")
-        or os.environ.get("AI_INTEGRATIONS_GEMINI_API_KEY")
-    )
+    return bool(os.environ.get("GEMINI_API_KEY") or
+                os.environ.get("AI_INTEGRATIONS_GEMINI_API_KEY"))
 
 
 def _rag_badge(status: str) -> str:
     c = RAG_HEX.get(status, "#999")
-    return (
-        f'<span style="background:{c};color:#fff;padding:5px 18px;'
-        f'border-radius:20px;font-weight:700;font-size:14px">{status}</span>'
-    )
+    return (f'<span style="background:{c};color:#fff;padding:5px 18px;'
+            f'border-radius:20px;font-weight:700;font-size:14px">{status}</span>')
 
 
 def _metric_card(label: str, value: Any, color: str = "#3498db") -> str:
-    return (
-        f'<div style="background:{color}15;border-left:4px solid {color};'
-        f'border-radius:8px;padding:12px 16px;text-align:center">'
-        f'<div style="font-size:24px;font-weight:700;color:{color}">{value}</div>'
-        f'<div style="font-size:11px;color:#555;margin-top:3px">{label}</div></div>'
-    )
+    return (f'<div style="background:{color}15;border-left:4px solid {color};'
+            f'border-radius:8px;padding:12px 16px;text-align:center">'
+            f'<div style="font-size:24px;font-weight:700;color:{color}">{value}</div>'
+            f'<div style="font-size:11px;color:#555;margin-top:3px">{label}</div></div>')
 
 
 def _show_pdf(pdf_path: str | Path, height: int = 680) -> None:
-    """Embed a PDF inline using pdf.js (works on Streamlit Cloud, unlike raw iframes)."""
+    """Embed a PDF inline using a base64 iframe."""
     p = Path(pdf_path)
     if not p.exists():
         st.warning("PDF file not found.")
         return
-    from streamlit_pdf_viewer import pdf_viewer
-
-    pdf_viewer(p.read_bytes(), height=height)
+    b64 = base64.b64encode(p.read_bytes()).decode()
+    st.markdown(
+        f'<iframe src="data:application/pdf;base64,{b64}" '
+        f'width="100%" height="{height}px" '
+        f'style="border:1px solid #ddd;border-radius:8px;margin-top:6px"></iframe>',
+        unsafe_allow_html=True,
+    )
 
 
 def _show_slides(slides_html: list[str], label: str = "Slide") -> None:
@@ -112,31 +97,29 @@ def _zip_outputs() -> bytes:
 
 
 def _load_css() -> None:
-    st.markdown(
-        """
+    st.markdown("""
     <style>
     .block-container { padding-top: 1.4rem; }
     div[data-testid="stExpander"] { border-radius: 10px; border: 1px solid #e8ecf0; }
     div[data-testid="metric-container"] { background: #f8f9fa; border-radius: 8px; padding: 8px; }
     .stTabs [data-baseweb="tab"] { font-size: 13px; }
     </style>
-    """,
-        unsafe_allow_html=True,
-    )
+    """, unsafe_allow_html=True)
 
 
-# sidebar
+# ─────────────────────────────────────────────────────────────────────────────
+# Sidebar
+# ─────────────────────────────────────────────────────────────────────────────
+
 def render_sidebar() -> dict[str, Any]:
     st.sidebar.image("https://img.icons8.com/fluency/96/bar-chart.png", width=60)
-    st.sidebar.title("RAGPulse : AI Project Health Reporting System")
+    st.sidebar.title("Project Health Reporter")
     st.sidebar.markdown("*AI-powered RAG analysis*")
     st.sidebar.divider()
 
     gemini_ok = _check_gemini()
     if not gemini_ok:
-        st.sidebar.warning(
-            "⚠️ **GEMINI_API_KEY not set.**\nAdd to Replit Secrets for AI analysis."
-        )
+        st.sidebar.warning("⚠️ **GEMINI_API_KEY not set.**\nAdd to Replit Secrets for AI analysis.")
 
     use_gemini = st.sidebar.toggle(
         "Enable Gemini AI",
@@ -145,8 +128,23 @@ def render_sidebar() -> dict[str, Any]:
         help="Adds AI-generated summaries, risks, and recommendations. Advisory only — never changes the official RAG colour, which always comes from the rule engine.",
     )
 
+    st.sidebar.divider()
+    st.sidebar.markdown("**📦 Outputs generated per run:**")
+    st.sidebar.markdown(
+        "- 📄 PDF weekly report per project\n"
+        "- 📑 5-slide PPTX per project\n"
+        "- 📊 Portfolio PDF summary\n"
+        "- 🎞️ 7-slide portfolio PPTX\n"
+        "- ⬇️ All files as ZIP"
+    )
+    st.sidebar.divider()
+    st.sidebar.caption("Upload Excel (.xlsx / .xls) project plan files to begin.")
     return {"use_gemini": use_gemini}
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Portfolio overview
+# ─────────────────────────────────────────────────────────────────────────────
 
 def render_portfolio_overview(
     projects: list[Any],
@@ -157,35 +155,28 @@ def render_portfolio_overview(
 ) -> None:
     st.header("📊 Portfolio Overview")
 
-    dist = summary.get("rag_distribution", {})
+    dist  = summary.get("rag_distribution", {})
     total = summary.get("total_projects", 0)
-    avg = summary.get("avg_composite_score", "N/A")
-    signal = summary.get("health_signal", "")
+    avg   = summary.get("avg_composite_score", "N/A")
+    signal= summary.get("health_signal", "")
 
     c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Total Projects", total)
-    c2.metric("🟢 Green", dist.get("Green", 0))
-    c3.metric("🟡 Amber", dist.get("Amber", 0))
-    c4.metric("🔴 Red", dist.get("Red", 0))
+    c2.metric("🟢 Green",  dist.get("Green",  0))
+    c3.metric("🟡 Amber",  dist.get("Amber",  0))
+    c4.metric("🔴 Red",    dist.get("Red",    0))
     c5.metric("Avg Score", str(avg))
 
     if signal:
-        fn = (
-            st.error
-            if "high risk" in signal.lower()
-            else st.warning if "pressure" in signal.lower() else st.success
-        )
-        fn(
-            f"{'🔴' if 'high risk' in signal.lower() else '🟡' if 'pressure' in signal.lower() else '🟢'}  {signal}"
-        )
+        fn = (st.error   if "high risk"  in signal.lower() else
+              st.warning if "pressure"   in signal.lower() else
+              st.success)
+        fn(f"{'🔴' if 'high risk' in signal.lower() else '🟡' if 'pressure' in signal.lower() else '🟢'}  {signal}")
 
     # Bar chart
     try:
         import pandas as pd
-
-        chart_df = pd.DataFrame(
-            {"Status": list(dist.keys()), "Count": list(dist.values())}
-        )
+        chart_df = pd.DataFrame({"Status": list(dist.keys()), "Count": list(dist.values())})
         chart_df = chart_df[chart_df["Count"] > 0]
         if not chart_df.empty:
             st.bar_chart(chart_df.set_index("Status"))
@@ -197,26 +188,19 @@ def render_portfolio_overview(
         with st.expander("📋 Cross-Project Score Comparison", expanded=True):
             try:
                 import pandas as pd
-
                 rows = []
                 for p in projects:
                     m = p.metrics
-                    rows.append(
-                        {
-                            "Project": p.name,
-                            "RAG": p.rag_status or "Unknown",
-                            "Score": m.get("composite_score", "N/A"),
-                            "Confidence": (
-                                f"{p.rag_confidence*100:.0f}%"
-                                if p.rag_confidence is not None
-                                else "N/A"
-                            ),
-                            "Completion": f"{m.get('completion_percent','N/A')}%",
-                            "Delayed": m.get("delayed_tasks", 0),
-                            "Open Risks": m.get("open_risks", 0),
-                            "Crit. Delayed": m.get("critical_delayed", 0),
-                        }
-                    )
+                    rows.append({
+                        "Project":   p.name,
+                        "RAG":       p.rag_status or "Unknown",
+                        "Score":     m.get("composite_score","N/A"),
+                        "Confidence":f"{p.rag_confidence*100:.0f}%" if p.rag_confidence is not None else "N/A",
+                        "Completion":f"{m.get('completion_percent','N/A')}%",
+                        "Delayed":   m.get("delayed_tasks",0),
+                        "Open Risks":m.get("open_risks",0),
+                        "Crit. Delayed": m.get("critical_delayed",0),
+                    })
                 df = pd.DataFrame(rows)
                 st.dataframe(df, use_container_width=True, hide_index=True)
             except Exception:
@@ -224,9 +208,7 @@ def render_portfolio_overview(
 
     # Portfolio slides
     if portfolio_slides:
-        with st.expander(
-            "🎞️ Portfolio Presentation Preview (7 slides)", expanded=False
-        ):
+        with st.expander("🎞️ Portfolio Presentation Preview (7 slides)", expanded=False):
             _show_slides(portfolio_slides, label="Slide")
             if pptx_path and Path(pptx_path).exists():
                 st.download_button(
@@ -252,8 +234,9 @@ def render_portfolio_overview(
     st.divider()
 
 
+# ─────────────────────────────────────────────────────────────────────────────
 # Detailed project card
-
+# ─────────────────────────────────────────────────────────────────────────────
 
 def render_project_card(
     project: Any,
@@ -261,16 +244,12 @@ def render_project_card(
     pdf_path: str | None,
     pptx_path: str | None,
 ) -> None:
-    rag = project.rag_status or "Unknown"
-    bg = RAG_BG.get(rag, "#f9f9f9")
+    rag    = project.rag_status or "Unknown"
+    bg     = RAG_BG.get(rag,  "#f9f9f9")
     border = RAG_HEX.get(rag, "#ccc")
-    m = project.metrics
-    conf = (
-        f"{project.rag_confidence*100:.0f}%"
-        if project.rag_confidence is not None
-        else "N/A"
-    )
-    score = m.get("composite_score")
+    m      = project.metrics
+    conf   = f"{project.rag_confidence*100:.0f}%" if project.rag_confidence is not None else "N/A"
+    score  = m.get("composite_score")
 
     # ── Header strip ──────────────────────────────────────────────────────────
     st.markdown(
@@ -297,72 +276,49 @@ def render_project_card(
         if rule_rag:
             st.caption(f"Official (rule engine): **{rule_rag}**")
         gemini_rag = getattr(project, "gemini_rag", None)
-        agrees = getattr(project, "gemini_agrees", None)
+        agrees     = getattr(project, "gemini_agrees", None)
         if gemini_rag:
             icon = "✅" if agrees else "ℹ️"
-            st.caption(
-                f"{icon} Gemini opinion: **{gemini_rag}**"
-                + ("" if agrees else " (advisory only)")
-            )
+            st.caption(f"{icon} Gemini opinion: **{gemini_rag}**" + ("" if agrees else " (advisory only)"))
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Executive summary
+    # ── Executive summary ─────────────────────────────────────────────────────
     if project.executive_summary:
         st.info(f"📋 **Executive Summary:** {project.executive_summary}")
 
-    # 10 KPI metrics
-    colors = [
-        "#3498db",
-        "#2ecc71",
-        "#e74c3c",
-        "#f39c12",
-        "#9b59b6",
-        "#1abc9c",
-        "#e67e22",
-        "#2980b9",
-        "#c0392b",
-        "#16a085",
-    ]
+    # ── 10 KPI metrics ────────────────────────────────────────────────────────
+    colors = ["#3498db","#2ecc71","#e74c3c","#f39c12","#9b59b6",
+              "#1abc9c","#e67e22","#2980b9","#c0392b","#16a085"]
     kpis = [
-        ("Completion %", f"{m.get('completion_percent','N/A')}%", colors[0]),
-        (
-            "Tasks Done",
-            f"{m.get('completed_tasks',0)}/{m.get('total_tasks',0)}",
-            colors[1],
-        ),
-        ("Delayed Tasks", m.get("delayed_tasks", 0), colors[2]),
-        (
-            "Overdue Milestones",
-            f"{m.get('overdue_milestones',0)}/{m.get('total_milestones',0)}",
-            colors[3],
-        ),
-        ("Open Risks", m.get("open_risks", 0), colors[4]),
-        ("High/Critical Risks", m.get("high_risks", 0), colors[7]),
-        ("Critical Tasks", m.get("critical_tasks", 0), colors[5]),
-        ("Critical Delayed", m.get("critical_delayed", 0), colors[6]),
-        ("Composite Score", f"{score:.3f}" if score else "N/A", colors[0]),
-        ("Confidence", conf, colors[9]),
+        ("Completion %",        f"{m.get('completion_percent','N/A')}%",    colors[0]),
+        ("Tasks Done",          f"{m.get('completed_tasks',0)}/{m.get('total_tasks',0)}", colors[1]),
+        ("Delayed Tasks",       m.get("delayed_tasks",0),                   colors[2]),
+        ("Overdue Milestones",  f"{m.get('overdue_milestones',0)}/{m.get('total_milestones',0)}", colors[3]),
+        ("Open Risks",          m.get("open_risks",0),                      colors[4]),
+        ("High/Critical Risks", m.get("high_risks",0),                      colors[7]),
+        ("Critical Tasks",      m.get("critical_tasks",0),                  colors[5]),
+        ("Critical Delayed",    m.get("critical_delayed",0),                colors[6]),
+        ("Composite Score",     f"{score:.3f}" if score else "N/A",         colors[0]),
+        ("Confidence",          conf,                                        colors[9]),
     ]
     kpi_html = "".join(_metric_card(l, v, c) for l, v, c in kpis)
     st.markdown(
         f'<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:8px 0">'
-        f"{kpi_html}</div>",
+        f'{kpi_html}</div>',
         unsafe_allow_html=True,
     )
 
-    #  Dimension scores
+    # ── Dimension scores ──────────────────────────────────────────────────────
     st.markdown("#### 📐 RAG Dimension Scores")
-    dims = m.get("dimensions", {})
-    weights = m.get("weights", {})
+    dims    = m.get("dimensions", {})
+    weights = m.get("weights",    {})
     if dims:
         for dim_name, data in dims.items():
-            dsc = float(data.get("score", 0))
-            wt = weights.get(dim_name, 0)
-            rat = data.get("rationale", "") or ""
-            d_col = (
-                "#2ecc71" if dsc >= 0.7 else ("#f39c12" if dsc >= 0.4 else "#e74c3c")
-            )
-            pct = int(dsc * 100)
+            dsc  = float(data.get("score", 0))
+            wt   = weights.get(dim_name, 0)
+            rat  = data.get("rationale", "") or ""
+            d_col= "#2ecc71" if dsc >= 0.7 else ("#f39c12" if dsc >= 0.4 else "#e74c3c")
+            pct  = int(dsc * 100)
             d1, d2 = st.columns([2.8, 7.2])
             with d1:
                 st.markdown(
@@ -376,25 +332,20 @@ def render_project_card(
                     f'<div style="background:#e0e0e0;border-radius:6px;height:22px;'
                     f'overflow:hidden;margin-top:8px">'
                     f'<div style="background:{d_col};width:{pct}%;height:100%;'
-                    f"border-radius:6px;display:flex;align-items:center;"
+                    f'border-radius:6px;display:flex;align-items:center;'
                     f'padding-left:10px;color:#fff;font-size:12px;font-weight:700">'
-                    f"{dsc:.2f}</div></div>"
+                    f'{dsc:.2f}</div></div>'
                     f'<div style="font-size:11px;color:#555;margin-top:2px">{rat}</div>',
                     unsafe_allow_html=True,
                 )
 
-    #  Detailed expandable sections
+    # ── Detailed expandable sections ──────────────────────────────────────────
     with st.expander("🔍 Full Detailed Analysis", expanded=False):
-        tab_slides, tab_pdf, tab_tasks, tab_risks, tab_ms, tab_ai = st.tabs(
-            [
-                "🎞️ Slides",
-                "📄 PDF Report",
-                "📋 Tasks",
-                "🚨 Risk Register",
-                "🗓️ Milestones",
-                "🤖 AI Reasoning",
-            ]
-        )
+        tab_slides, tab_pdf, tab_tasks, tab_risks, tab_ms, tab_ai = st.tabs([
+            "🎞️ Slides", "📄 PDF Report",
+            "📋 Tasks", "🚨 Risk Register",
+            "🗓️ Milestones", "🤖 AI Reasoning",
+        ])
 
         # Slides tab
         with tab_slides:
@@ -430,48 +381,31 @@ def render_project_card(
             all_tasks = project.tasks + project.milestones
             if all_tasks:
                 import pandas as pd
-
                 rows = []
                 for t in all_tasks[:200]:
-                    rows.append(
-                        {
-                            "Name": t.name,
-                            "Status": t.status or "",
-                            "% Complete": (
-                                f"{t.percent_complete:.0f}%"
-                                if t.percent_complete is not None
-                                else ""
-                            ),
-                            "Milestone": "⭐" if t.is_milestone else "",
-                            "Critical": "⚠️" if t.is_critical else "",
-                            "Delayed": "🔴" if t.is_delayed else "🟢",
-                            "Variance (d)": (
-                                f"{t.variance_days:+.0f}" if t.variance_days else ""
-                            ),
-                            "Planned Finish": (
-                                t.planned_finish.isoformat() if t.planned_finish else ""
-                            ),
-                            "Actual Start": (
-                                t.actual_start.isoformat() if t.actual_start else ""
-                            ),
-                            "Float (d)": f"{t.float_days:.0f}" if t.float_days else "",
-                        }
-                    )
-                st.dataframe(
-                    pd.DataFrame(rows), use_container_width=True, hide_index=True
-                )
+                    rows.append({
+                        "Name":         t.name,
+                        "Status":       t.status or "",
+                        "% Complete":   f"{t.percent_complete:.0f}%" if t.percent_complete is not None else "",
+                        "Milestone":    "⭐" if t.is_milestone else "",
+                        "Critical":     "⚠️" if t.is_critical else "",
+                        "Delayed":      "🔴" if t.is_delayed else "🟢",
+                        "Variance (d)": f"{t.variance_days:+.0f}" if t.variance_days else "",
+                        "Planned Finish": t.planned_finish.isoformat() if t.planned_finish else "",
+                        "Actual Start":  t.actual_start.isoformat()   if t.actual_start  else "",
+                        "Float (d)":    f"{t.float_days:.0f}" if t.float_days else "",
+                    })
+                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
                 # Summary stats
-                total = len(all_tasks)
-                done = sum(1 for t in all_tasks if t.is_complete)
-                delayed = sum(1 for t in all_tasks if t.is_delayed)
-                crits = sum(1 for t in all_tasks if t.is_critical)
-                mss = sum(1 for t in all_tasks if t.is_milestone)
+                total  = len(all_tasks)
+                done   = sum(1 for t in all_tasks if t.is_complete)
+                delayed= sum(1 for t in all_tasks if t.is_delayed)
+                crits  = sum(1 for t in all_tasks if t.is_critical)
+                mss    = sum(1 for t in all_tasks if t.is_milestone)
                 sc1, sc2, sc3, sc4, sc5 = st.columns(5)
-                sc1.metric("Total", total)
-                sc2.metric("Done", done)
-                sc3.metric("Delayed", delayed)
-                sc4.metric("Critical", crits)
+                sc1.metric("Total", total); sc2.metric("Done", done)
+                sc3.metric("Delayed", delayed); sc4.metric("Critical", crits)
                 sc5.metric("Milestones", mss)
             else:
                 st.info("No task data available.")
@@ -479,37 +413,25 @@ def render_project_card(
         # Risk register tab
         with tab_risks:
             raw_risks = project.risks
-            ai_risks = project.identified_risks or []
+            ai_risks  = project.identified_risks or []
             if raw_risks:
                 import pandas as pd
-
-                rows = [
-                    {
-                        "Description": r.description or "",
-                        "Severity": r.severity or "",
-                        "Probability": r.probability or "",
-                        "Impact": r.impact or "",
-                        "Owner": r.owner or "",
-                        "Mitigation": (r.mitigation or "")[:80],
-                        "Status": r.status or "",
-                    }
-                    for r in raw_risks
-                ]
-                st.dataframe(
-                    pd.DataFrame(rows), use_container_width=True, hide_index=True
-                )
-                high = sum(
-                    1
-                    for r in raw_risks
-                    if (r.severity or "").lower() in {"high", "critical"}
-                )
-                med = sum(
-                    1 for r in raw_risks if (r.severity or "").lower() == "medium"
-                )
+                rows = [{
+                    "Description": r.description or "",
+                    "Severity":    r.severity    or "",
+                    "Probability": r.probability or "",
+                    "Impact":      r.impact      or "",
+                    "Owner":       r.owner       or "",
+                    "Mitigation":  (r.mitigation or "")[:80],
+                    "Status":      r.status      or "",
+                } for r in raw_risks]
+                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+                high = sum(1 for r in raw_risks if (r.severity or "").lower() in {"high","critical"})
+                med  = sum(1 for r in raw_risks if (r.severity or "").lower() == "medium")
                 rc1, rc2, rc3 = st.columns(3)
-                rc1.metric("Total Risks", len(raw_risks))
+                rc1.metric("Total Risks",     len(raw_risks))
                 rc2.metric("High / Critical", high)
-                rc3.metric("Medium", med)
+                rc3.metric("Medium",          med)
             elif ai_risks:
                 st.markdown("**AI-identified risks:**")
                 for r in ai_risks:
@@ -522,30 +444,16 @@ def render_project_card(
             milestones = project.milestones
             if milestones:
                 import pandas as pd
-
-                rows = [
-                    {
-                        "Milestone": t.name or "",
-                        "Status": t.status or "",
-                        "% Complete": (
-                            f"{t.percent_complete:.0f}%"
-                            if t.percent_complete is not None
-                            else ""
-                        ),
-                        "Planned Finish": (
-                            t.planned_finish.isoformat() if t.planned_finish else ""
-                        ),
-                        "Variance (d)": (
-                            f"{t.variance_days:+.0f}" if t.variance_days else ""
-                        ),
-                        "Delayed": "🔴 Yes" if t.is_delayed else "🟢 No",
-                        "Complete": "✅" if t.is_complete else "⏳",
-                    }
-                    for t in milestones
-                ]
-                st.dataframe(
-                    pd.DataFrame(rows), use_container_width=True, hide_index=True
-                )
+                rows = [{
+                    "Milestone":      t.name or "",
+                    "Status":         t.status or "",
+                    "% Complete":     f"{t.percent_complete:.0f}%" if t.percent_complete is not None else "",
+                    "Planned Finish": t.planned_finish.isoformat() if t.planned_finish else "",
+                    "Variance (d)":   f"{t.variance_days:+.0f}" if t.variance_days else "",
+                    "Delayed":        "🔴 Yes" if t.is_delayed else "🟢 No",
+                    "Complete":       "✅" if t.is_complete else "⏳",
+                } for t in milestones]
+                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
                 overdue = project.overdue_milestones
                 if overdue:
                     st.error(f"⚠️ {len(overdue)} overdue milestone(s):")
@@ -564,7 +472,7 @@ def render_project_card(
                 st.markdown("**AI Reasoning:**")
                 st.markdown(
                     f'<div style="background:#eaf4fb;border-left:4px solid #3498db;'
-                    f"border-radius:0 8px 8px 0;padding:14px 18px;font-size:13px;"
+                    f'border-radius:0 8px 8px 0;padding:14px 18px;font-size:13px;'
                     f'line-height:1.6">{project.reasoning}</div>',
                     unsafe_allow_html=True,
                 )
@@ -594,11 +502,13 @@ def render_project_card(
             # Raw metrics JSON
             with st.expander("🔧 Raw Metrics (JSON)", expanded=False):
                 import json
-
                 st.json(m)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
 # Downloads
+# ─────────────────────────────────────────────────────────────────────────────
+
 def render_downloads(results: dict[str, Any]) -> None:
     st.header("📥 Download All Reports")
 
@@ -608,8 +518,8 @@ def render_downloads(results: dict[str, Any]) -> None:
 
     # Per-project downloads
     for proj_name, paths in results.get("report_paths", {}).items():
-        pdf_p = paths.get("pdf")
-        pptx_p = results.get("project_pptx_paths", {}).get(proj_name)
+        pdf_p    = paths.get("pdf")
+        pptx_p   = results.get("project_pptx_paths", {}).get(proj_name)
         with download_cols[col_idx % 2]:
             st.markdown(f"**📁 {proj_name}**")
             if pdf_p and Path(pdf_p).exists():
@@ -625,7 +535,7 @@ def render_downloads(results: dict[str, Any]) -> None:
             if pptx_p and Path(pptx_p).exists():
                 has_files = True
                 st.download_button(
-                    "📑 Weekly PPTX (5 slides)",
+                    "📑 Monthly PPTX (5 slides)",
                     data=Path(pptx_p).read_bytes(),
                     file_name=Path(pptx_p).name,
                     mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
@@ -635,7 +545,7 @@ def render_downloads(results: dict[str, Any]) -> None:
         col_idx += 1
 
     st.markdown("---")
-    p_pdf = results.get("portfolio_pdf_path")
+    p_pdf  = results.get("portfolio_pdf_path")
     p_pptx = results.get("pptx_path")
 
     c1, c2 = st.columns(2)
@@ -676,12 +586,15 @@ def render_downloads(results: dict[str, Any]) -> None:
         st.caption("Run analysis to generate reports.")
 
 
+# ─────────────────────────────────────────────────────────────────────────────
 # Main
+# ─────────────────────────────────────────────────────────────────────────────
+
 def main() -> None:
     _load_css()
     config = render_sidebar()
 
-    st.title("📊 RAGPulse : AI Project Health Reporting System")
+    st.title("📊 AI Project Health Reporting System")
     st.markdown(
         "Upload Excel project plan files to generate **AI-powered RAG health reports**, "
         "PDF weekly reports, PPTX presentations, and a portfolio summary."
@@ -702,11 +615,9 @@ def main() -> None:
         for f in uploaded:
             (tmp_dir / f.name).write_bytes(f.read())
         workbook_dir = tmp_dir
-        st.success(
-            f"✅ {len(uploaded)} file(s) ready: {', '.join(f.name for f in uploaded)}"
-        )
+        st.success(f"✅ {len(uploaded)} file(s) ready: {', '.join(f.name for f in uploaded)}")
 
-    #  Run Analysis
+    # ── Run Analysis ──────────────────────────────────────────────────────────
     st.divider()
     col_btn, col_status = st.columns([2, 5])
     with col_btn:
@@ -719,10 +630,10 @@ def main() -> None:
 
     if run and workbook_dir:
         if config["use_gemini"] and not _check_gemini():
-            st.error("⚠️ Gemini API key not found")
+            st.error("⚠️ Gemini API key not found. Add GEMINI_API_KEY to Replit Secrets.")
         else:
-            status_box = col_status.empty()
-            progress = st.progress(0)
+            status_box  = col_status.empty()
+            progress    = st.progress(0)
             msgs: list[str] = []
 
             def _cb(msg: str) -> None:
@@ -732,7 +643,6 @@ def main() -> None:
 
             try:
                 from src.analysis import run_full_pipeline
-
                 results = run_full_pipeline(
                     workbook_dir=workbook_dir,
                     output_dir=OUTPUT_DIR,
@@ -747,7 +657,7 @@ def main() -> None:
                 st.error(f"❌ Analysis failed: {exc}")
                 logger.exception("Pipeline error")
 
-    # Display Results
+    # ── Display Results ───────────────────────────────────────────────────────
     results = st.session_state.get("results")
     if not results:
         return
@@ -756,31 +666,28 @@ def main() -> None:
         st.error(f"⚠️ {results['error']}")
         return
 
-    projects = results.get("projects", [])
-    portfolio_summary = results.get("portfolio_summary", {})
-    portfolio_pdf = results.get("portfolio_pdf_path")
-    pptx_path = results.get("pptx_path")
+    projects         = results.get("projects", [])
+    portfolio_summary= results.get("portfolio_summary", {})
+    portfolio_pdf    = results.get("portfolio_pdf_path")
+    pptx_path        = results.get("pptx_path")
     portfolio_slides = results.get("portfolio_slides_html", [])
-    proj_slides = results.get("project_slides_html", {})
-    proj_pptx = results.get("project_pptx_paths", {})
-    report_paths = results.get("report_paths", {})
+    proj_slides      = results.get("project_slides_html", {})
+    proj_pptx        = results.get("project_pptx_paths", {})
+    report_paths     = results.get("report_paths", {})
 
     # Portfolio overview (only when multiple projects)
     if portfolio_summary and len(projects) > 1:
         render_portfolio_overview(
-            projects,
-            portfolio_summary,
-            portfolio_pdf,
-            portfolio_slides,
-            pptx_path,
+            projects, portfolio_summary,
+            portfolio_pdf, portfolio_slides, pptx_path,
         )
 
     # Per-project analysis
     st.header("🏗️ Weekly Project Analysis")
     for project in projects:
-        slides = proj_slides.get(project.name, [])
+        slides   = proj_slides.get(project.name, [])
         pdf_path = report_paths.get(project.name, {}).get("pdf")
-        pptx_p = proj_pptx.get(project.name)
+        pptx_p   = proj_pptx.get(project.name)
         render_project_card(project, slides, pdf_path, pptx_p)
         st.divider()
 
@@ -789,7 +696,7 @@ def main() -> None:
         p = projects[0]
         pdf_p = report_paths.get(p.name, {}).get("pdf")
         slides = proj_slides.get(p.name, [])
-        pp_path = proj_pptx.get(p.name)
+        pp_path= proj_pptx.get(p.name)
 
         if slides:
             st.subheader(f"🎞️ {p.name} — Slide Preview (5 slides)")

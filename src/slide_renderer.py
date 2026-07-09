@@ -334,7 +334,7 @@ def _proj_slide_title(project: Project) -> str:
     html = f"""
 <div class="slide" style="background:linear-gradient(135deg,#2c3e50 0%,#1a252f 100%)">
   <div style="position:absolute;top:35%;left:0;right:0;text-align:center;padding:0 60px">
-    <div style="font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px">Weekly Health Report</div>
+    <div style="font-size:11px;color:#aaa;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px">Monthly Health Report</div>
     <div style="font-size:32px;font-weight:800;color:#fff;line-height:1.2">{project.name}</div>
     <div style="margin-top:16px">
       <span class="rag-badge" style="background:{color};font-size:14px;padding:6px 20px">{rag}</span>
@@ -344,7 +344,7 @@ def _proj_slide_title(project: Project) -> str:
   </div>
   <div style="position:absolute;bottom:0;left:0;right:0;height:5px;background:{color}"></div>
   <div style="position:absolute;bottom:5px;left:0;right:0;padding:8px;text-align:center;color:#666;font-size:9px">
-    AI Project Health Reporting System — Weekly Report
+    AI Project Health Reporting System — Monthly Report
   </div>
 </div>"""
     return _html_wrap(html)
@@ -499,7 +499,7 @@ def _proj_slide_closing(project: Project) -> str:
     html = f"""
 <div class="slide" style="background:linear-gradient(135deg,#2c3e50 0%,#1a252f 100%)">
   <div class="header-bar" style="background:rgba(255,255,255,.08);color:#fff;border-bottom:2px solid {color}">
-    <h2>Weekly Summary — {project.name[:40]}</h2>
+    <h2>Monthly Summary — {project.name[:40]}</h2>
     <span class="rag-badge" style="background:{color};margin-left:auto">{rag}</span>
   </div>
   <div class="content">
@@ -519,7 +519,7 @@ def _proj_slide_closing(project: Project) -> str:
     </div>
   </div>
   <div style="position:absolute;bottom:0;left:0;right:0;padding:6px;background:{color};color:#fff;font-size:9px;text-align:center">
-    AI Project Health Reporting System — Weekly Report — {date.today().isoformat()}
+    AI Project Health Reporting System — Monthly Report — {date.today().isoformat()}
   </div>
 </div>"""
     return _html_wrap(html)

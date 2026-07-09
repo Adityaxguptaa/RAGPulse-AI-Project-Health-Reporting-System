@@ -386,7 +386,7 @@ def _proj_title(prs, project):
     _box(s, 0, H-Inches(0.55), W, Inches(0.55), fill=_NAVY)
     _box(s, 0, H-Inches(0.55)-Inches(0.06), W, Inches(0.06), fill=col)
     _text(s, Inches(1), Inches(0.9), W-Inches(2), Inches(0.45),
-          "Weekly Project Health Report", size=14, color=_GREY, center=True)
+          "Monthly Project Health Report", size=14, color=_GREY, center=True)
     _text(s, Inches(0.5), Inches(1.5), W-Inches(1), Inches(1.0),
           project.name, size=36, bold=True, color=_WHITE, center=True)
     _box(s, W//2-Inches(1.5), Inches(2.8), Inches(3), Inches(0.55), fill=col)
@@ -396,7 +396,7 @@ def _proj_title(prs, project):
           f"Score: {score}  |  PM: {project.pm or 'N/A'}  |  {date.today().isoformat()}",
           size=12, color=_GREY, center=True)
     _text(s, Inches(0.5), H-Inches(0.47), W-Inches(1), Inches(0.4),
-          "AI Project Health Reporting System  —  Weekly Report",
+          "AI Project Health Reporting System  —  Monthly Report",
           size=9, color=_WHITE, center=True)
 
 
@@ -632,12 +632,12 @@ def generate_pptx(
 
 
 def generate_project_pptx(project: Project, output_dir: str | Path) -> Path:
-    """Build a 5-slide per-project PPTX weekly report."""
+    """Build a 5-slide per-project PPTX monthly report."""
     import re
     out  = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
     safe = re.sub(r"[^\w\-]", "_", project.name)
-    path = out / f"{safe}_weekly_presentation.pptx"
+    path = out / f"{safe}_monthly_presentation.pptx"
     prs  = _prs()
     _proj_title(prs, project)
     _proj_dashboard(prs, project)
