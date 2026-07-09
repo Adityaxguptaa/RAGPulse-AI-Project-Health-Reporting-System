@@ -14,7 +14,10 @@ logger = logging.getLogger(__name__)
 # Load .env on import so this module works standalone (not just via Streamlit)
 try:
     from dotenv import load_dotenv as _load_dotenv
-    _load_dotenv(override=False)   # env vars already set (e.g. Replit Secrets) take precedence
+
+    _load_dotenv(
+        override=False
+    )  # env vars already set (e.g. Replit Secrets) take precedence
 except ImportError:
     pass
 
@@ -27,18 +30,20 @@ def _get_client() -> Any:
     if _CLIENT_CACHE is not None:
         return _CLIENT_CACHE
 
-    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("AI_INTEGRATIONS_GEMINI_API_KEY")
+    api_key = os.environ.get("GEMINI_API_KEY") or os.environ.get(
+        "AI_INTEGRATIONS_GEMINI_API_KEY"
+    )
     base_url = os.environ.get("AI_INTEGRATIONS_GEMINI_BASE_URL")
 
     if not api_key:
-        raise RuntimeError(
-            "GEMINI_API_KEY not set. Add it to Replit Secrets or your .env file."
-        )
+        raise RuntimeError("GEMINI_API_KEY not set")
 
     try:
         import google.generativeai as genai
+
         if base_url:
             import google.api_core.client_options as client_options_lib
+
             genai.configure(
                 api_key=api_key,
                 client_options=client_options_lib.ClientOptions(api_endpoint=base_url),
@@ -67,11 +72,15 @@ def call_gemini(prompt: str, retries: int = 3, delay: float = 2.0) -> str:
             logger.debug("Gemini response (attempt %d): %s...", attempt, text[:120])
             return text
         except Exception as exc:
-            logger.warning("Gemini call failed (attempt %d/%d): %s", attempt, retries, exc)
+            logger.warning(
+                "Gemini call failed (attempt %d/%d): %s", attempt, retries, exc
+            )
             if attempt < retries:
                 time.sleep(delay * attempt)
             else:
-                raise RuntimeError(f"Gemini API call failed after {retries} attempts: {exc}") from exc
+                raise RuntimeError(
+                    f"Gemini API call failed after {retries} attempts: {exc}"
+                ) from exc
 
     return ""  # unreachable
 
@@ -100,5 +109,3 @@ def call_gemini_json(prompt: str, retries: int = 3) -> dict[str, Any]:
                 pass
         logger.error("Failed to parse Gemini JSON response: %s", text[:300])
         raise ValueError(f"Gemini returned non-JSON response: {exc}") from exc
-
-
