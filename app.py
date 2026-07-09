@@ -145,6 +145,8 @@ def render_sidebar() -> dict[str, Any]:
         help="Adds AI-generated summaries, risks, and recommendations. Advisory only — never changes the official RAG colour, which always comes from the rule engine.",
     )
 
+    return {"use_gemini": use_gemini}
+
 
 def render_portfolio_overview(
     projects: list[Any],
@@ -717,9 +719,7 @@ def main() -> None:
 
     if run and workbook_dir:
         if config["use_gemini"] and not _check_gemini():
-            st.error(
-                "⚠️ Gemini API key not found. Add GEMINI_API_KEY to Replit Secrets."
-            )
+            st.error("⚠️ Gemini API key not found")
         else:
             status_box = col_status.empty()
             progress = st.progress(0)
