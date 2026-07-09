@@ -149,17 +149,6 @@ def render_sidebar() -> dict[str, Any]:
         help="Adds AI-generated summaries, risks, and recommendations. Advisory only — never changes the official RAG colour, which always comes from the rule engine.",
     )
 
-    st.sidebar.divider()
-    st.sidebar.markdown("**📦 Outputs generated per run:**")
-    st.sidebar.markdown(
-        "- 📄 PDF weekly report per project\n"
-        "- 📑 5-slide PPTX per project\n"
-        "- 📊 Portfolio PDF summary\n"
-        "- 🎞️ 7-slide portfolio PPTX\n"
-        "- ⬇️ All files as ZIP"
-    )
-    st.sidebar.divider()
-    st.sidebar.caption("Upload Excel (.xlsx / .xls) project plan files to begin.")
     return {"use_gemini": use_gemini}
 
 
@@ -711,7 +700,7 @@ def main() -> None:
     _load_css()
     config = render_sidebar()
 
-    st.title("📊 AI Project Health Reporting System")
+    st.title("📊 RAGPULSE : AI Project Health Reporting System")
     st.markdown(
         "Upload Excel project plan files to generate **AI-powered RAG health reports**, "
         "PDF weekly reports, PPTX presentations, and a portfolio summary."
