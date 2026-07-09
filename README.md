@@ -1,4 +1,4 @@
-# RAGPulse : AI Project Health Reporting System
+# AI Project Health Reporting System
 
 A Streamlit tool that takes messy Excel project plans and turns them into a straight answer: is this project Green, Amber, or Red — and why. Upload one or more workbooks and it parses tasks, milestones and risks out of them, scores health on six weighted dimensions, optionally layers Gemini on top for the narrative (summary, risks, recommendations), and spits out a weekly PDF report and a PowerPoint deck per project, plus a portfolio-level rollup when you upload more than one.
 
@@ -35,6 +35,20 @@ On Replit, this is already wired up as the `Streamlit App` workflow and `GEMINI_
 4. For a single project you get its RAG badge, ten key metrics, all six dimension scores with rationale, a full detail view (tasks, risk register, milestones, AI reasoning), and inline PDF/slide previews. For multiple projects you also get a portfolio overview with a RAG distribution chart and a cross-project comparison table.
 5. Download individual PDFs/PPTXs, or grab everything as one ZIP.
 
+### Using it from code
+
+```python
+from src.analysis import run_full_pipeline
+
+results = run_full_pipeline(
+    workbook_dir="sample_data/",
+    output_dir="outputs/",
+    use_gemini=True,
+)
+
+for project in results["projects"]:
+    print(f"{project.name}: {project.rag_status} ({project.rag_confidence:.0%})")
+```
 
 ### Environment variables
 
@@ -127,12 +141,19 @@ Here's the important bit: **the RAG colour and confidence you see always come fr
 
 ---
 
-## Notes on the approach
+## Design decisions
 
-- **Deterministic first, AI second.** The rule engine gives a stable, explainable baseline that doesn't depend on an external API being up. AI adds value on top; it doesn't replace the scoring.
-- **Weighted, not averaged.** Schedule and milestones count for more than raw completion %, because a project can look 80% done while every deliverable that actually matters is late.
-- **Every number has a reason attached.** Rationale strings travel with the score into every output format — app, PDF, and PPTX.
-- **Nothing crashes on messy input.** Missing sheets, missing columns, a Gemini timeout — all of it degrades to a lower-confidence but still valid report instead of an error page.
+The core question I was designing for wasn't "can AI read a spreadsheet" — it's "can I trust the answer it gives me." That drove most of the calls below.
+
+**1. Rules decide, AI explains.** The RAG status always comes from the deterministic rule engine — Gemini never touches the actual score. It only adds the narrative (summary, reasoning, recommendations) on top. Early on, the same file could come out Amber with AI off and Red with AI on, which isn't something you can put in front of a stakeholder. So now AI is advisory only: if Gemini's read genuinely disagrees, that's recorded separately as advisory rather than allowed to move the badge.
+
+**2. Weighted, not averaged — deliberately.** Schedule and milestones carry more weight than raw completion %, because a project can look 80% done on paper while every deliverable that matters is late. Milestones are penalized harder than ordinary tasks since they're commitments, not to-do items. Every score keeps a plain-English rationale attached, so nothing is a black box.
+
+**3. Degrade gracefully, never crash.** Real project plans are messy — inconsistent column names, missing sheets, half-filled risk registers. The parser fuzzy-matches headers instead of expecting an exact template, and a missing data category becomes a Data Quality penalty rather than a fatal error. If the Gemini call fails or times out, the report still generates from the rule engine alone. The system should always produce something, even from an imperfect input.
+
+**4. Outputs in the format people actually share.** Instead of a JSON export or an HTML page nobody opens, the outputs are a proper PDF report and a PowerPoint deck — per project and for the whole portfolio — because that's what these get shared as. Everything previews inline before you download it.
+
+See `LOOM_SCRIPT.md` for a 2-minute walkthrough of these same decisions.
 
 ## Possible next steps
 

@@ -12,7 +12,11 @@ from typing import Any
 import streamlit as st
 import streamlit.components.v1 as components
 
-gemini_key = st.secrets["GEMINI_API_KEY"]
+try:
+    if "GEMINI_API_KEY" in st.secrets:
+        os.environ.setdefault("GEMINI_API_KEY", st.secrets["GEMINI_API_KEY"])
+except Exception:
+    pass  # no secrets.toml locally — fine, .env / os.environ will be used instead
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)-8s %(name)s — %(message)s"
