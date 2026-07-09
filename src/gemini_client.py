@@ -10,6 +10,9 @@ import time
 from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
+import streamlit as st
+
+gemini_key = st.secrets["GEMINI_API_KEY"]
 
 # Load .env on import so this module works standalone (not just via Streamlit)
 try:

@@ -12,6 +12,8 @@ from typing import Any
 import streamlit as st
 import streamlit.components.v1 as components
 
+gemini_key = st.secrets["GEMINI_API_KEY"]
+
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)-8s %(name)s — %(message)s"
 )
@@ -122,7 +124,8 @@ def _load_css() -> None:
         unsafe_allow_html=True,
     )
 
-#sidebar
+
+# sidebar
 def render_sidebar() -> dict[str, Any]:
     st.sidebar.image("https://img.icons8.com/fluency/96/bar-chart.png", width=60)
     st.sidebar.title("RAGPulse : AI Project Health Reporting System")
@@ -249,6 +252,7 @@ def render_portfolio_overview(
 
 # Detailed project card
 
+
 def render_project_card(
     project: Any,
     slides_html: list[str],
@@ -300,11 +304,11 @@ def render_project_card(
             )
     st.markdown("</div>", unsafe_allow_html=True)
 
-    # Executive summary 
+    # Executive summary
     if project.executive_summary:
         st.info(f"📋 **Executive Summary:** {project.executive_summary}")
 
-    # 10 KPI metrics 
+    # 10 KPI metrics
     colors = [
         "#3498db",
         "#2ecc71",
@@ -344,7 +348,7 @@ def render_project_card(
         unsafe_allow_html=True,
     )
 
-    #  Dimension scores 
+    #  Dimension scores
     st.markdown("#### 📐 RAG Dimension Scores")
     dims = m.get("dimensions", {})
     weights = m.get("weights", {})
@@ -670,7 +674,6 @@ def render_downloads(results: dict[str, Any]) -> None:
         st.caption("Run analysis to generate reports.")
 
 
-
 # Main
 def main() -> None:
     _load_css()
@@ -744,7 +747,7 @@ def main() -> None:
                 st.error(f"❌ Analysis failed: {exc}")
                 logger.exception("Pipeline error")
 
-    # Display Results 
+    # Display Results
     results = st.session_state.get("results")
     if not results:
         return
