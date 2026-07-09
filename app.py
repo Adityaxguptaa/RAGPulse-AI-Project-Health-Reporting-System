@@ -76,18 +76,14 @@ def _metric_card(label: str, value: Any, color: str = "#3498db") -> str:
 
 
 def _show_pdf(pdf_path: str | Path, height: int = 680) -> None:
-    """Embed a PDF inline using a base64 iframe."""
+    """Embed a PDF inline using pdf.js (works on Streamlit Cloud, unlike raw iframes)."""
     p = Path(pdf_path)
     if not p.exists():
         st.warning("PDF file not found.")
         return
-    b64 = base64.b64encode(p.read_bytes()).decode()
-    st.markdown(
-        f'<iframe src="data:application/pdf;base64,{b64}" '
-        f'width="100%" height="{height}px" '
-        f'style="border:1px solid #ddd;border-radius:8px;margin-top:6px"></iframe>',
-        unsafe_allow_html=True,
-    )
+    from streamlit_pdf_viewer import pdf_viewer
+
+    pdf_viewer(p.read_bytes(), height=height)
 
 
 def _show_slides(slides_html: list[str], label: str = "Slide") -> None:
